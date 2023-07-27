@@ -64,7 +64,49 @@ const init = async () => {
         })
     }
 
-    const q3addRole = () => {}
+    const q3addRole = () => {
+        db.query('SELECT * FROM department', (err, res) => {
+            if (err) throw error;
+            let dptArray = [];
+            res.forEach((department) => {dptArray.push(department.dpt_name)})
+            inquirer.prompt([
+            {
+                type: 'list',
+                name: 'dpt_name',
+                message: 'What dpt does this role belong to?',
+                choices: dptArray
+            }
+            ])
+            .then((answer) => {addRoleInfo(answer)});
+            const addRoleInfo = (dptData) => {
+            inquirer.prompt([
+                {
+                    type: 'input',
+                    name: 'title',
+                    message: "What is the role's title?",
+                },
+                {
+                    type: 'input',
+                    name: 'salary',
+                    message: "What is the salary of the role?",
+                },
+            ])
+            .then((answer) => {
+            let dptId;
+            res.forEach((department) => {
+                if (dptData.dpt_name === department.dpt_name) {dptId = department.id;}
+            })
+            let crit = [answer.title, answer.salary, dptId]
+            db.query('INSERT INTO role (title, salary, department_id) VALUES (?, ?, ?)', crit, (err) => {
+            if (err) throw error;
+            console.log('Role successfully created!')
+            init ();
+            })
+          }) 
+
+         }; 
+        });
+    }
 
     const q4viewDpts = () => {
         db.query('SELECT * FROM department', (err, res) => {
