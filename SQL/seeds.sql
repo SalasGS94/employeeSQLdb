@@ -1,4 +1,4 @@
-INSERT INTO department (department_name)
+INSERT INTO department (dpt_name)
 VALUES ("human resources"),
        ("accounting"),
        ("sales"),
@@ -16,4 +16,8 @@ VALUES ("Tony", "Stark", 1, NULL),
        ("Natasha", "Romanov", 4, 1),
        ("Bruce", "Banner", 3, 1);
 
--- SELECT * FROM employee;
+SELECT * FROM department;
+
+SELECT * FROM role;
+
+SELECT * FROM employee;
