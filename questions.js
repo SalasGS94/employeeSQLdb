@@ -19,7 +19,7 @@ const HomeQuestions = [
       type: 'list',
       name: 'actionToDo',
       message: 'What would you like to do?',
-      choices: ['Update', 'View roles', 'Add role', 'View dpts', 'Add dpt', 'Quit', 'View employees'],
+      choices: ['Update', 'View roles', 'Add role', 'View dpts', 'Add dpt', 'Quit', 'View employees', 'Add employee'],
     },
 ];
 
@@ -48,6 +48,9 @@ const init = async () => {
             case 'View employees':
             return q7viewEmp ()
             
+            case 'Add employee':
+            return q8addEmp ()
+
             default:
                 break;
         }
@@ -96,8 +99,8 @@ const init = async () => {
             res.forEach((department) => {
                 if (dptData.dpt_name === department.dpt_name) {dptId = department.id;}
             })
-            let crit = [answer.title, answer.salary, dptId]
-            db.query('INSERT INTO role (title, salary, department_id) VALUES (?, ?, ?)', crit, (err) => {
+            let q3group = [answer.title, answer.salary, dptId]
+            db.query('INSERT INTO role (title, salary, department_id) VALUES (?, ?, ?)', q3group, (err) => {
             if (err) throw error;
             console.log('Role successfully created!')
             init ();
@@ -140,11 +143,66 @@ const init = async () => {
     }
 
     const q7viewEmp = () => {
-        db.query("SELECT employee.id, employee.first_name, employee.last_name, role.title, department.dpt_name AS department, role.salary, CONCAT(manager.first_name, ' ', manager.last_name) AS manager FROM employee LEFT JOIN role ON employee.role_id = role.id LEFT JOIN department ON role.department_id = department.id LEFT JOIN employee manager ON manager.id = employee.manager_id;", (err, res) => {
+        db.query("SELECT employee.id, employee.first_name, employee.last_name, role.title, role.department_id, department.dpt_name AS department, role.salary, CONCAT(manager.first_name, ' ', manager.last_name) AS manager FROM employee LEFT JOIN role ON employee.role_id = role.id LEFT JOIN department ON role.department_id = department.id LEFT JOIN employee manager ON manager.id = employee.manager_id;", (err, res) => {
             if (err) throw error
             console.table(res)
             init ();
         })
     }
+
+    const q8addEmp = () => {
+        inquirer.prompt([
+            {
+                type: 'input',
+                name: 'firstName',
+                message: "First name",
+            },
+            {
+                type: 'input',
+                name: 'lastName',
+                message: "Last name",
+            },
+        ])
+        .then(answer => {
+            const group = [answer.firstName, answer.lastName]
+            db.query('SELECT role.id, role.title FROM role', (err, data) => {
+                if (err) throw error;
+                const roles = data.map(({ id, title }) => ({ name: title, value: id }));
+                inquirer.prompt([
+                    {
+                        type: 'list',
+                        name: 'role',
+                        message: "What is the employee's role?",
+                        choices: roles
+                    }
+                ])
+                .then(roleSelect => {
+                    const role = roleSelect.role
+                    group.push(role);
+                    db.query('SELECT * FROM employee', (err, data) => {
+                        if (err) throw error
+                        const managers = data.map(({id, first_name, last_name}) => ({name: first_name + " "+ last_name, value: id}))
+                        inquirer.prompt([
+                            {
+                              type: 'list',
+                              name: 'manager',
+                              message: "Who is the manager of this employee?",
+                              choices: managers
+                            }
+                          ])
+                          .then(managerSelect => {
+                            const manager = managerSelect.manager;
+                            group.push(manager)
+                            db.query('INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, ?)', group, (err) => {
+                            if (err) throw error;
+                            console.log("Employee successfully created!")
+                            init();
+                      })
+                     })//from .then(managerSelect)
+                    })//from SELECT * emp
+                })//from roleSelect
+            })//from SELECT role.id
+        })//from .then(answer)... after prompt
+    } //from q8addEmp
 
 init();
