@@ -5,7 +5,7 @@ USE employee_handler_db;
 
 CREATE TABLE department (
     id INT PRIMARY KEY AUTO_INCREMENT,
-    department_name VARCHAR(30)
+    dpt_name VARCHAR(30)
 );
 
 CREATE TABLE role (
