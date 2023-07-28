@@ -31,3 +31,8 @@ CREATE TABLE employee (
     REFERENCES employee(id)
     ON DELETE SET NULL
 );
+
+SELECT * FROM employee AS e    
+JOIN role AS r  
+ON e.role_id = r.id 
+
