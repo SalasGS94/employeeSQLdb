@@ -19,7 +19,7 @@ const HomeQuestions = [
       type: 'list',
       name: 'actionToDo',
       message: 'What would you like to do?',
-      choices: ['Update', 'View roles', 'Add role', 'View dpts', 'Add dpt', 'Quit', 'View employees', 'Add employee'],
+      choices: ['View dpts', 'View roles', 'View employees', 'Add dpt', 'Add role', 'Add employee', 'Update role', 'Quit'],
     },
 ];
 
@@ -27,47 +27,80 @@ const init = async () => {
     inquirer.prompt(HomeQuestions)
     .then (({actionToDo}) => {
         switch (actionToDo) {
-            case 'Update dpt':
-            return q1updateDpt ()
-
+            case 'View dpts':
+            return q1viewDpts ()            
+            
             case 'View roles':
             return q2viewRoles ()
 
-            case 'Add role':
-            return q3addRole ()
-
-            case 'View dpts':
-            return q4viewDpts ()
+            case 'View employees':
+            return q3viewEmp ()
 
             case 'Add dpt':    
-            return q5addDpt ()
+            return q4addDpt ()
 
-            case 'Quit':
-            return q6quitQ ()
-
-            case 'View employees':
-            return q7viewEmp ()
+            case 'Add role':
+            return q5addRole ()
             
             case 'Add employee':
-            return q8addEmp ()
+            return q6addEmp ()            
+
+            case 'Update role':
+            return q7updateRole ()
+
+            case 'Quit':
+            return q8quitQ ()
 
             default:
-                break;
+            break;
         }
     })
 }
 
-    const q1updateDpt = () => {}
-
-    const q2viewRoles = () => {
-        db.query('SELECT * FROM role', (err, res) => {
+    const q1viewDpts = () => {
+        db.query('SELECT * FROM department', (err, res) => {
             if (err) throw error
             console.table(res)
             init ();
         })
     }
 
-    const q3addRole = () => {
+    const q2viewRoles = () => {
+        db.query('SELECT role.id, role.title, role.salary, department.dpt_name AS department FROM role LEFT JOIN department ON role.department_id = department.id', (err, res) => {
+            if (err) throw error
+            console.table(res)
+            init ();
+        })
+    }
+
+    const q3viewEmp = () => {
+        db.query("SELECT employee.id, employee.first_name, employee.last_name, role.title, department.dpt_name AS department, role.salary, CONCAT(manager.first_name, ' ', manager.last_name) AS manager FROM employee LEFT JOIN role ON employee.role_id = role.id LEFT JOIN department ON role.department_id = department.id LEFT JOIN employee manager ON manager.id = employee.manager_id;", (err, res) => {
+            if (err) throw error
+            console.table(res)
+            init ();
+        })
+    }
+
+    const q4addDpt = () => {
+        const addDpt = [
+            {
+                type: 'input',
+                name: 'dpt_name',
+                message: 'Write the name of the dpt',
+            },
+        ]
+        inquirer.prompt(addDpt)
+        .then((res) => {
+            console.log(res)
+            db.query('INSERT INTO department SET ?', res, (err, res) => {
+                if (err) throw error
+                console.log('Dpt has been added')
+                init ();
+            })
+        })
+    }
+
+    const q5addRole = () => {
         db.query('SELECT * FROM department', (err, res) => {
             if (err) throw error;
             let dptArray = [];
@@ -106,51 +139,11 @@ const init = async () => {
             init ();
             })
           }) 
-
          }; 
         });
     }
 
-    const q4viewDpts = () => {
-        db.query('SELECT * FROM department', (err, res) => {
-            if (err) throw error
-            console.table(res)
-            init ();
-        })
-    }
-
-    const q5addDpt = () => {
-        const addDpt = [
-            {
-                type: 'input',
-                name: 'dpt_name',
-                message: 'Write the name of the dpt',
-            },
-        ]
-        inquirer.prompt(addDpt)
-        .then((response) => {
-            console.log(response)
-            db.query('INSERT INTO department SET ?', response, (err, result) => {
-                if (err) throw error
-                console.log('Dpt has been added')
-                init ();
-            })
-        })
-    }
-
-    const q6quitQ = () => {
-        process.exit()
-    }
-
-    const q7viewEmp = () => {
-        db.query("SELECT employee.id, employee.first_name, employee.last_name, role.title, role.department_id, department.dpt_name AS department, role.salary, CONCAT(manager.first_name, ' ', manager.last_name) AS manager FROM employee LEFT JOIN role ON employee.role_id = role.id LEFT JOIN department ON role.department_id = department.id LEFT JOIN employee manager ON manager.id = employee.manager_id;", (err, res) => {
-            if (err) throw error
-            console.table(res)
-            init ();
-        })
-    }
-
-    const q8addEmp = () => {
+    const q6addEmp = () => {
         inquirer.prompt([
             {
                 type: 'input',
@@ -198,11 +191,61 @@ const init = async () => {
                             console.log("Employee successfully created!")
                             init();
                       })
-                     })//from .then(managerSelect)
-                    })//from SELECT * emp
-                })//from roleSelect
-            })//from SELECT role.id
-        })//from .then(answer)... after prompt
-    } //from q8addEmp
+                     })
+                    })
+                })
+            })
+        })
+    } 
 
+    const q7updateRole = () => {
+        db.query('SELECT CONCAT(first_name, " ", last_name) AS full_name FROM employee', (err, res) => {
+            if (err) throw error
+            const empArray = res.map((row) => row.full_name);
+    
+            db.query('SELECT title FROM role', (err, res) => {
+            if (err) throw error
+            const roleArray = res.map((row) => row.title);
+    
+            const empData = [
+                {
+                type: 'list',
+                name: 'empSelected',
+                message: "Which employee's role would yo want to update?",
+                choices: empArray,
+                },
+                {
+                type: 'list',
+                name: 'roleSelected',
+                message: 'Which role do you want to assign to the selected employee?',
+                choices: roleArray,
+                },
+            ];
+    
+            inquirer.prompt(empData).then((answer) => {
+                const empName = answer.empSelected;
+                const roleName = answer.roleSelected;
+    
+                db.query(`SELECT id FROM role WHERE title = ?`, roleName, (err, res) => {
+                    if (err) throw error
+                    const concatName = 'CONCAT(first_name, " ", last_name)';
+                    const arrayRoleID = res.map((row) => row.id);
+                    const roleId = arrayRoleID[0];
+                    db.query(`UPDATE employee SET role_id = ? WHERE ${concatName} = ?`, [roleId, empName], (err, res) => {
+                        console.log('Employee role successfully updated!');
+                        init();
+                    }
+                    );
+                }
+                );
+            });
+            });
+        }
+        );
+    }
+
+    const q8quitQ = () => {
+        process.exit()
+    }
+    
 init();
